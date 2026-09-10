@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>격리 연구실 — 미스터리 방탈출</title>
+  <style>
+    :root{color-scheme:dark;--void:#07090b;--line:#29343b;--text:#e7ecee;--muted:#8d9ba2;--signal:#e7644d;--safe:#7fb99b;font-family:"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+    *{box-sizing:border-box}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;overflow-x:hidden;color:var(--text);background:radial-gradient(circle at 50% 0%,rgba(67,87,96,.18),transparent 38rem),repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.012) 4px),var(--void)}
+    .lab{width:min(680px,100%)}
+    .status-bar{display:flex;align-items:center;justify-content:space-between;margin:0 4px 12px;color:var(--muted);font-size:.78rem}
+    .status{display:inline-flex;align-items:center;gap:8px}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--signal);box-shadow:0 0 14px var(--signal);animation:blink 2.4s steps(1) infinite}
+    .card{position:relative;min-height:520px;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:linear-gradient(145deg,rgba(19,25,29,.97),rgba(9,13,16,.99));box-shadow:0 32px 80px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.025)}
+    .card::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--signal) 0 22%,transparent 22%)}
+    .scene{min-height:520px;display:flex;flex-direction:column;padding:clamp(28px,7vw,54px)}
+    .scene.leaving{animation:leave 180ms ease forwards}.scene.entering{animation:enter 360ms cubic-bezier(.2,.75,.25,1) both}
+    .chapter{margin:0 0 34px;color:var(--muted);font-size:.8rem;letter-spacing:.03em}
+    h1{margin:0 0 20px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(2rem,7vw,3.65rem);font-weight:500;letter-spacing:-.045em;line-height:1}
+    .story{max-width:34rem;margin:0;color:#c8d0d4;font-size:clamp(1rem,2.6vw,1.12rem);line-height:1.85;word-break:keep-all}
+    .choices{display:grid;gap:10px;margin-top:auto;padding-top:42px}
+    button{width:100%;border:1px solid #344149;border-radius:3px;padding:15px 17px;color:#dce3e6;background:#151c20;font:inherit;text-align:left;cursor:pointer;transition:border-color 150ms ease,background 150ms ease,transform 150ms ease}
+    button:hover{border-color:#71818a;background:#1a2328;transform:translateX(4px)}button:focus-visible{outline:3px solid rgba(231,100,77,.48);outline-offset:3px}
+    .choice-number{display:inline-block;width:2rem;color:var(--signal);font-family:Georgia,serif;font-variant-numeric:tabular-nums}
+    .ending h1{color:var(--signal)}.ending.good h1{color:var(--safe)}.restart{text-align:center;border-color:var(--signal);color:#fff}.good .restart{border-color:var(--safe)}
+    .progress{display:flex;gap:5px;align-items:center}.progress span{width:20px;height:2px;background:#2c383e}.progress span.on{background:var(--signal)}
+    @keyframes blink{50%{opacity:.25}}@keyframes leave{to{opacity:0;transform:translateY(-8px)}}@keyframes enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    @media(max-width:520px){body{padding:14px}.scene{min-height:560px;padding:30px 24px}.card{min-height:560px}.chapter{margin-bottom:28px}button{padding:14px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="lab" aria-live="polite">
+    <div class="status-bar" aria-hidden="true"><span class="status"><span class="status-dot"></span>비상 전력 가동 중</span><span class="progress" id="progress"></span></div>
+    <section class="card" id="game"></section>
+  </main>
+  <script>
+    const scenes={
+      start:{title:'눈을 뜨다',text:'어두운 연구실에서 깨어났다. 책상 위에 열쇠가 있고 앞에는 굳게 닫힌 철문이 있다.',choices:[['열쇠를 줍는다','key'],['철문을 밀어본다','door'],['책상 아래를 살핀다','underDesk']]},
+      key:{title:'차가운 열쇠',text:'열쇠 손잡이에 「B-04」가 새겨져 있다. 철문 옆에는 카드 단말기만 있고, 방 구석에 작은 보관함이 보인다.',choices:[['B-04 보관함을 연다','locker'],['열쇠를 철문 틈에 넣어본다','shock'],['환풍구를 조사한다','vent']]},
+      door:{title:'문 너머의 소리',text:'철문은 꿈쩍도 하지 않는다. 세 번 밀자 문 너머에서 짧게 세 번, 길게 한 번 두드리는 소리가 돌아온다.',choices:[['같은 박자로 답한다','signal'],['더 세게 문을 걷어찬다','alarm'],['열쇠를 집으러 돌아간다','key']]},
+      underDesk:{title:'찢어진 메모',text:'책상 밑에서 메모를 찾았다. 「전원이 끊기면 관찰실 비상 코드는 실험 번호의 역순」. 벽의 실험 표본에는 704-B라고 적혀 있다.',choices:[['단말기에 407을 입력한다','terminal'],['단말기에 704를 입력한다','gas'],['열쇠를 챙긴다','key']]},
+      locker:{title:'보관함 B-04',text:'열쇠가 정확히 맞는다. 안에는 출입 카드와 붉은 약병이 있다. 카드에는 당신의 사진이 붙어 있지만 이름 부분은 지워져 있다.',choices:[['출입 카드를 단말기에 댄다','identity'],['붉은 약을 마신다','poison'],['카드와 약병을 모두 챙긴다','identity']]},
+      vent:{title:'희미한 바람',text:'환풍구 안쪽에서 바깥 공기가 느껴진다. 나사는 녹슬었고, 보관함 열쇠의 끝이 나사 홈과 꼭 맞는다.',choices:[['열쇠로 나사를 돌린다','crawl'],['손으로 덮개를 뜯는다','cut'],['보관함을 먼저 확인한다','locker']]},
+      signal:{title:'응답',text:'잠시 뒤 문 아래로 카드 한 장이 밀려 들어온다. 카드 뒷면에는 「그들은 목소리를 듣고 있다」라고 적혀 있다.',choices:[['말없이 카드를 단말기에 댄다','identity'],['문 너머에 누구냐고 묻는다','alarm'],['카드를 부러뜨린다','locked']]},
+      terminal:{title:'관리자 화면',text:'코드가 승인되며 실험실 도면이 나타난다. 철문은 미끼다. 실제 비상 통로는 환풍구 뒤편으로 이어져 있다.',choices:[['환풍구로 들어간다','crawl'],['철문의 잠금을 원격 해제한다','specimen'],['기록을 삭제하고 기다린다','locked']]},
+      identity:{title:'접근 권한 승인',text:'단말기에 이름이 뜬다. 「연구책임자 한서진」. 철문 잠금과 실험체 격리장치 중 하나만 해제할 수 있다.',choices:[['철문 잠금을 해제한다','escape'],['격리장치를 해제한다','specimen'],['전원을 완전히 차단한다','blackout']]},
+      crawl:{title:'좁은 통로',text:'환풍구 끝에서 두 갈래를 만났다. 왼쪽은 차가운 바람이 불고, 오른쪽에서는 낮고 규칙적인 숨소리가 들린다.',choices:[['바람이 부는 왼쪽으로 간다','escape'],['숨소리가 들리는 오른쪽으로 간다','specimen']]},
+      escape:{ending:'good',title:'탈출 성공',text:'차가운 새벽 공기가 폐 깊숙이 들어온다. 뒤에서 연구실 경보음이 울리지만, 철문은 다시 닫힌다. 당신은 살아서 나왔다.'},
+      shock:{ending:'bad',title:'감전',text:'열쇠가 전선에 닿는 순간 푸른 섬광이 번진다. 마지막으로 들린 것은 자동 음성이다. 「실험 재시작 준비 완료」.'},
+      alarm:{ending:'bad',title:'발각',text:'천장의 붉은 등이 켜지고 수면 가스가 쏟아진다. 문 너머의 누군가가 조용히 말한다. 「이번 피험자는 너무 시끄럽군」.'},
+      gas:{ending:'bad',title:'잘못된 코드',text:'단말기에 접근 거부가 뜬다. 세 번째 경고음과 함께 환풍구가 닫히고 달콤한 냄새가 방을 채운다.'},
+      poison:{ending:'bad',title:'기억 회수',text:'약을 삼키자 모든 기억이 돌아온다. 이곳을 만든 사람은 당신이었다. 그러나 해독제의 유효 기간은 이미 3년 전에 끝났다.'},
+      cut:{ending:'bad',title:'오염',text:'녹슨 철판에 손이 깊게 베인다. 상처가 검게 번지기 시작한다. 유리 너머에서 무언가가 당신을 따라 움직인다.'},
+      locked:{ending:'bad',title:'영구 격리',text:'비상 전력이 꺼지고 모든 잠금장치가 봉쇄된다. 어둠 속 스피커가 선언한다. 「격리 절차가 완료되었습니다」.'},
+      specimen:{ending:'bad',title:'격리 해제',text:'당신이 연 문은 출구가 아니었다. 어둠 속에서 여러 개의 눈이 동시에 떠진다. 그것은 당신의 이름을 알고 있다.'},
+      blackout:{ending:'bad',title:'정전',text:'전원이 끊기자 철문 잠금도 풀린다. 그러나 동시에 모든 격리실의 잠금도 풀렸다. 복도에서 수십 개의 발소리가 다가온다.'}
+    };
+    const game=document.querySelector('#game'),progress=document.querySelector('#progress');let step=1,changing=false;
+    function drawProgress(ending){progress.innerHTML='';for(let i=1;i<=4;i++){const mark=document.createElement('span');if(i<=Math.min(step,4)||ending)mark.className='on';progress.append(mark)}}
+    function render(id,animate=true){const scene=scenes[id],ending=Boolean(scene.ending);drawProgress(ending);game.innerHTML=`<div class="scene ${ending?`ending ${scene.ending}`:''} ${animate?'entering':''}"><p class="chapter">${ending?'사건 기록 종료':`격리 구역 · 선택 ${String(step).padStart(2,'0')}`}</p><h1>${scene.title}</h1><p class="story">${scene.text}</p><div class="choices">${ending?'<button class="restart" type="button" data-next="start">처음부터 다시하기</button>':scene.choices.map((choice,i)=>`<button type="button" data-next="${choice[1]}"><span class="choice-number">${i+1}.</span>${choice[0]}</button>`).join('')}</div></div>`;changing=false;game.querySelector('button')?.focus({preventScroll:true})}
+    game.addEventListener('click',event=>{const button=event.target.closest('button[data-next]');if(!button||changing)return;changing=true;const next=button.dataset.next,current=game.querySelector('.scene');current.classList.remove('entering');current.classList.add('leaving');step=next==='start'?1:step+1;setTimeout(()=>render(next),matchMedia('(prefers-reduced-motion: reduce)').matches?0:180)});
+    render('start',false);
+  </script>
+</body>
+</html>
